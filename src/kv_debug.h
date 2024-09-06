@@ -52,8 +52,8 @@ static inline void print_log(int log_level, const char * fmt, ...) {
 static inline void print_sr_list(struct ibv_send_wr * sr_list) {
     struct ibv_send_wr * p;
     for (p = sr_list; p != NULL; p = p->next) {
-        // print_log(DEBUG, "wr_id(%ld) raddr(%lx) rkey(%x)", p->wr_id, p->wr.rdma.remote_addr, 
-        //     p->wr.rdma.rkey);
+        print_log(DEBUG, "wr_id(%ld) raddr(%lx) rkey(%x)", p->wr_id, p->wr.rdma.remote_addr, 
+            p->wr.rdma.rkey);
     }
 }
 
@@ -63,7 +63,7 @@ static inline void print_sr_lists(std::vector<IbvSrList *> & sr_list_batch,
         uint8_t server_id;
         for (int j = 0; j < sr_list_num_batch[i]; j ++) {
             server_id = sr_list_batch[i][j].server_id;
-            // print_log(DEBUG, "server_id(%d)", server_id);
+            print_log(DEBUG, "server_id(%d)", server_id);
             print_sr_list(sr_list_batch[i][j].sr_list);
         }
     }

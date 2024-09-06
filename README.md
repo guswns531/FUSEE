@@ -1,3 +1,222 @@
+# FUSEE Setup and Performance Testing
+
+This project details the process of setting up and testing FUSEE (Fully Memory-Disaggregated Key-Value Store) on multiple nodes, using Infiniband for network communication and YCSB workloads for benchmarking. The setup focuses on efficient memory usage, hugepages, and performance tests for latency and throughput.
+
+## Node Information
+
+The following nodes are used for testing:
+
+- **inv03**: Client node 1
+- **inv05**: Client node 2
+- **inv06**: Server node 1
+- **inv07**: Server node 2
+
+## Initial Setup (Single Node)
+
+1. Navigate to the setup directory and run the environment preparation script:
+   ```bash
+   cd setup
+   bash setup-env-prepare.sh
+   ```
+
+2. If installing Miniforge on a single node, you will be prompted to accept the license and confirm the installation location. Follow these instructions:
+   ```
+   Do you accept the license terms? [yes|no] 
+   => yes
+   Mambaforge will now be installed into this location:
+   /home/hjang/mambaforge
+   - Press ENTER to confirm the location
+   => ENTER
+   You can undo this by running `conda init --reverse $SHELL`? [yes|no]
+   => yes
+   ```
+
+3. Download the workload:
+   ```bash
+   cd setup
+   sh download_workload.sh
+   ```
+
+## Package Installation on All Nodes
+
+Run the following commands on each node to install the necessary packages:
+```bash
+cd setup
+bash setup-env-install.sh
+```
+
+Note: The installed MLNX_OFED version is **MLNX_OFED_LINUX-4.9-5.1.0.0**, which supports **ConnectX-3**.
+
+https://docs.nvidia.com/networking/display/mlnxofedv495100/introduction
+
+> As of MLNX_OFED version v5.1-0.6.6.0, the following are no longer supported.     
+> ConnectX-3   
+> ConnectX-3 Pro   
+> Connect-IB   
+> RDMA experimental verbs libraries (mlnx_lib)   
+> To utilize the above devices/libraries, refer to version 4.9 long-term support (LTS).
+
+
+## Infiniband Testing
+
+1. Run the following tests on **inv06** (server) and **inv03** (client):
+   ```
+   # inv06 server
+   ib_send_lat
+   ib_atomic_lat
+
+   # inv03 client
+   ib_send_lat inv06
+   ib_atomic_lat inv06
+   ```
+
+2. Check for any CPU frequency issues:
+   ```
+   cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+   ```
+
+## Compile FUSEE on Single Node - inv06)
+
+1. Compile FUSEE:
+   ```bash
+   mkdir build && cd build
+   /usr/local/bin/cmake ..
+   make -j
+   ```
+
+2. For debug mode:
+   ```bash
+   cd ..
+   rm -rf build
+   mkdir build && cd build
+   /usr/local/bin/cmake -DCMAKE_CXX_FLAGS="-D_DEBUG" --build ..
+   make -j
+   ```
+
+## Running the Server for Memory Mode (inv06, inv07)
+
+1. Configure and run the server on **inv06**:
+   ```bash
+   sudo su
+   echo 7168 > /proc/sys/vm/nr_hugepages
+   mkdir -p /data/hjang
+   cp -rp /home/hjang/storage/FUSEE/build/ /data/hjang
+   cd /data/hjang/build
+   cp /home/hjang/storage/FUSEE/server_config1.json /data/hjang/build/server_config.json
+   numactl -N 0 -m 0 ./ycsb-test/ycsb_test_server 0 
+   ```
+
+2. Configure and run the server on **inv07**:
+   ```bash
+   sudo su
+   echo 7168 > /proc/sys/vm/nr_hugepages
+   mkdir -p /data/hjang
+   cp -rp /home/hjang/storage/FUSEE/build/ /data/hjang
+   cd /data/hjang/build
+   cp /home/hjang/storage/FUSEE/server_config2.json /data/hjang/build/server_config.json
+   numactl -N 0 -m 0 ./ycsb-test/ycsb_test_server 1
+   ```
+
+### Server Output Example
+
+- **inv06**:
+  ```
+  ===== Starting Server 0 =====
+  kv_area_addr: 18000000, block_size: 4000000
+  my_sid_: 0, num_memory_: 2
+  num_rep_blocks: 26, num_blocks: 26, limit: 90000000
+  press to exit
+  ===== Ending Server 0 =====
+  ```
+
+- **inv07**:
+  ```
+  ===== Starting Server 1 =====
+  kv_area_addr: 18000000, block_size: 4000000
+  my_sid_: 1, num_memory_: 2
+  num_rep_blocks: 26, num_blocks: 26, limit: 90000000
+  press to exit
+  ===== Ending Server 1 =====
+  ```
+
+## Running the Client for Computing node (inv03, inv05)
+
+### Prepare Client for Computing node (inv03, inv05) 
+1. Configure and run the client on **inv03**:
+   ```bash
+   sudo su
+   echo 2048 > /proc/sys/vm/nr_hugepages
+   mkdir -p /data/hjang
+   cp -rp /home/hjang/storage/FUSEE/build/ /data/hjang
+   cp /home/hjang/storage/FUSEE/client_config1.json /data/hjang/build/client_config.json
+   cd /data/hjang/build
+   ```
+
+2. Configure and run the client on **inv05**:
+   ```bash
+   sudo su
+   echo 2048 > /proc/sys/vm/nr_hugepages
+   mkdir -p /data/hjang
+   cp -rp /home/hjang/storage/FUSEE/build/ /data/hjang
+   cp /home/hjang/storage/FUSEE/client_config2.json /data/hjang/build/client_config.json
+   cd /data/hjang/build
+   ```
+
+### Micro Latency Test (inv03)
+
+1. Run the micro latency test:
+   ```bash
+   mkdir results
+   numactl -N 0 -m 0 ./micro-test/latency_test_client ./client_config.json
+   ```
+
+2. Results will be saved in the `./results` directory.
+
+### Micro Throughput Test (inv03, inv05)
+
+Run the micro throughput test simultaneously on **inv03** and **inv05**:
+```bash
+numactl -N 0 -m 0 ./micro-test/micro_test_multi_client ./client_config.json 4
+```
+
+Output example:
+- **inv03**:
+  ```
+  insert total: 257140 ops
+  insert failed: 0 ops
+  insert tpt: 514280 ops/s
+  ```
+
+- **inv05**:
+  ```
+  insert total: 251175 ops
+  insert failed: 0 ops
+  insert tpt: 502350 ops/s
+  ```
+
+## YCSB Workload Testing (inv03)
+
+1. Copy workload files to **inv03**:
+   ```bash
+   cp -rp /home/hjang/storage/FUSEE/setup/workloads /data/hjang/build/ycsb-test/workloads
+   cp /home/hjang/storage/FUSEE/ycsb-test/split-workload-ycsb.py /data/hjang/build/ycsb-test/
+   cd /data/hjang/build/ycsb-test
+   ```
+
+2. Run the YCSB workload:
+   ```bash
+   python split-workload-ycsb.py 4
+   numactl -N 0 -m 0 ./ycsb_test_multi_client ../client_config.json workloada 4
+   ```
+
+Output example:
+```
+thread: 0 128871 ops/s
+thread: 1 133409 ops/s
+total: 5229704 ops
+tpt: 522970 ops/s
+```
+
 # FUSEE: A Fully Memory-Disaggregated Key-Value Store
 
 

@@ -12,7 +12,7 @@ void * server_main(void * server_main_args) {
     // stick to a core
     int ret = stick_this_thread_to_core(args->core_id);
     // assert(ret == 0);
-    // print_log(DEBUG, "server is running on core: %d", args->core_id);
+    print_log(DEBUG, "server is running on core: %d", args->core_id);
 
     // start working
     return server_instance->thread_main();   
@@ -65,7 +65,7 @@ int Server::server_on_alloc(const struct KVMsg * request, struct sockaddr_in * s
         socklen_t src_addr_len) {
     uint64_t alloc_addr = mm_->mm_alloc();
     // assert(mmblock != NULL);
-    // print_log(DEBUG, "allocated addr: %lx", mmblock->addr);
+    print_log(DEBUG, "allocated addr: %lx", alloc_addr);
     // assert((mmblock->addr & 0x3FFFFFF) == 0);
 
     struct KVMsg reply;
@@ -91,7 +91,7 @@ int Server::server_on_alloc_subtable(const struct KVMsg * request, struct sockad
         socklen_t src_addr_len) {
     uint64_t subtable_addr = mm_->mm_alloc_subtable();
     // assert(subtable_addr != 0);
-    // print_log(DEBUG, "alloc subtable: %lx", subtable_addr);
+    print_log(DEBUG, "alloc subtable: %lx", subtable_addr);
     // assert((subtable_addr & 0xFF)  == 0);
 
     struct KVMsg reply;

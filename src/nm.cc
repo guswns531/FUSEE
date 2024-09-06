@@ -404,8 +404,8 @@ int UDPNetworkManager::nm_rdma_write_inl_to_sid_sync(void * data, uint32_t size,
     sr.wr.rdma.remote_addr = remote_addr;
     sr.wr.rdma.rkey = remote_rkey;
 
-    // print_log(DEBUG, "\t  [%s] writing to server(%d) raddr(%lx) rkey(%x)", 
-    //     __FUNCTION__, server_id, remote_addr, remote_rkey);
+    print_log(DEBUG, "\t  [%s] writing to server(%d) raddr(%lx) rkey(%x)", 
+        __FUNCTION__, server_id, remote_addr, remote_rkey);
     
     int ret = rdma_post_send_batch_async(server_id, &sr);
     // assert(ret == 0);
@@ -444,7 +444,7 @@ int UDPNetworkManager::nm_rdma_write_inl_to_sid(void * data, uint32_t size, uint
     struct ibv_wc wc;
     ret = rdma_poll_one_completion(&wc);
     if (wc.status != IBV_WC_SUCCESS) {
-        // print_log(DEBUG, "WC status(%d) id(%ld)", wc.status, wc.wr_id);
+        print_log(DEBUG, "WC status(%d) id(%ld)", wc.status, wc.wr_id);
     }
     // assert(wc.status == IBV_WC_SUCCESS);
     // assert(wc.wr_id  == 100);
@@ -477,7 +477,7 @@ int UDPNetworkManager::nm_rdma_write_to_sid(void * local_addr, uint32_t local_lk
     struct ibv_wc wc;
     ret = rdma_poll_one_completion(&wc);
     if (wc.status != IBV_WC_SUCCESS) {
-        // print_log(DEBUG, "WC statud(%d)", wc.status);
+        print_log(DEBUG, "WC statud(%d)", wc.status);
     }
     // assert(wc.status == IBV_WC_SUCCESS);
     // assert(wc.wr_id  == 101);
@@ -581,7 +581,7 @@ int UDPNetworkManager::rdma_post_sr_lists_sync(IbvSrList * sr_lists,
         // assert(ret >= 0);
         for (int i = 0; i < ret; i ++) {
             if (tmp_wc[i].status != IBV_WC_SUCCESS) {
-                // print_log(DEBUG, "\t[%s] wc: %d", __FUNCTION__, tmp_wc[i].status);
+                print_log(DEBUG, "\t[%s] wc: %d", __FUNCTION__, tmp_wc[i].status);
             }
             // assert(tmp_wc[i].status == IBV_WC_SUCCESS);
             comp_wrid_map[tmp_wc[i].wr_id] = true;
@@ -655,7 +655,7 @@ int UDPNetworkManager::rdma_post_sr_lists_async(IbvSrList * sr_lists,
 int UDPNetworkManager::rdma_post_sr_list_batch_sync(std::vector<IbvSrList *> & sr_list_batch,
         std::vector<uint32_t> & sr_list_num_batch, __OUT struct ibv_wc * wc) {
     // print_sr_lists(sr_list_batch, sr_list_num_batch);
-    // print_log(DEBUG, "\t\t[%s] 0. get server map", __FUNCTION__);
+    print_log(DEBUG, "\t\t[%s] 0. get server map", __FUNCTION__);
     std::map<uint8_t, std::vector<IbvSrList *> > server_id_sr_list_map;
     for (int i = 0; i < sr_list_batch.size(); i ++) {
         uint8_t server_id;
@@ -665,7 +665,7 @@ int UDPNetworkManager::rdma_post_sr_list_batch_sync(std::vector<IbvSrList *> & s
         }
     }
 
-    // print_log(DEBUG, "\t\t[%s] 1. merge wr lists", __FUNCTION__);
+    print_log(DEBUG, "\t\t[%s] 1. merge wr lists", __FUNCTION__);
     std::map<uint8_t, struct ibv_send_wr *>  post_sr_map;
     std::map<uint64_t, bool> comp_wrid_map;
     std::map<uint8_t, std::vector<IbvSrList *> >::iterator it;
@@ -677,20 +677,20 @@ int UDPNetworkManager::rdma_post_sr_list_batch_sync(std::vector<IbvSrList *> & s
         comp_wrid_map[last_wr_id] = false;
     }
 
-    // print_log(DEBUG, "\t\t[%s] 2. post sends", __FUNCTION__);
+    print_log(DEBUG, "\t\t[%s] 2. post sends", __FUNCTION__);
     std::map<uint8_t, struct ibv_send_wr *>::iterator sr_it;
     int ret = 0;
     for (sr_it = post_sr_map.begin(); sr_it != post_sr_map.end(); sr_it ++) {
-        // print_log(DEBUG, "\t  rc_qp_list_.size() = %d, it->first = %d", __FUNCTION__, rc_qp_list_.size(), sr_it->first);
+        print_log(DEBUG, "\t  rc_qp_list_.size() = %d, it->first = %d", __FUNCTION__, rc_qp_list_.size(), sr_it->first);
         struct ibv_qp * send_qp = rc_qp_list_[sr_it->first]; 
         struct ibv_send_wr * bad_wr;
-        // print_log(DEBUG, "\t\t  post send to server(%d) qp(%x)", it->first, send_qp->qp_num);
+        print_log(DEBUG, "\t\t  post send to server(%d) qp(%x)", it->first, send_qp->qp_num);
         ret = ibv_post_send(send_qp, sr_it->second, &bad_wr);
         // assert(ret == 0);
     }
 
     // poll cq
-    // print_log(DEBUG, "\t[%s] 3. poll completion", __FUNCTION__);
+    print_log(DEBUG, "\t[%s] 3. poll completion", __FUNCTION__);
     int num_wc = post_sr_map.size();
     struct ibv_wc * tmp_wc = (struct ibv_wc *)malloc(sizeof(struct ibv_wc) * num_wc);
     do {
@@ -698,21 +698,21 @@ int UDPNetworkManager::rdma_post_sr_list_batch_sync(std::vector<IbvSrList *> & s
         // assert(ret >= 0);
         for (int i = 0; i < ret; i ++) {
             if (tmp_wc[i].status != IBV_WC_SUCCESS) {
-                // print_log(DEBUG, "\t\t  wc status(%d)", tmp_wc[i].status);
+                print_log(DEBUG, "\t\t  wc status(%d)", tmp_wc[i].status);
             }
-            // print_log(DEBUG, "\t\t  wc(%ld) polled", tmp_wc[i].wr_id);
+            print_log(DEBUG, "\t\t  wc(%ld) polled", tmp_wc[i].wr_id);
             // assert(tmp_wc[i].status == IBV_WC_SUCCESS);
             comp_wrid_map[tmp_wc[i].wr_id] = true;
         }
     } while (!is_all_complete(comp_wrid_map));
-    // print_log(DEBUG, "\t\t[%s] 4. finish", __FUNCTION__);
+    print_log(DEBUG, "\t\t[%s] 4. finish", __FUNCTION__);
 
     return 0;
 }
 
 int UDPNetworkManager::rdma_post_sr_list_batch_async(std::vector<IbvSrList *> & sr_list_batch, 
         std::vector<uint32_t> & sr_list_num_batch, __OUT std::map<uint64_t, struct ibv_wc *> & wait_wrid_wc_map) {
-    // print_log(DEBUG, "\t\t[%s] 0. get server map", __FUNCTION__);
+    print_log(DEBUG, "\t\t[%s] 0. get server map", __FUNCTION__);
     std::map<uint8_t, std::vector<IbvSrList *> > server_id_sr_list_map;
     for (int i = 0; i < sr_list_batch.size(); i ++) {
         uint8_t server_id;
@@ -722,7 +722,7 @@ int UDPNetworkManager::rdma_post_sr_list_batch_async(std::vector<IbvSrList *> & 
         }
     }
 
-    // print_log(DEBUG, "\t\t[%s] 1. merge wr lists", __FUNCTION__);
+    print_log(DEBUG, "\t\t[%s] 1. merge wr lists", __FUNCTION__);
     std::map<uint8_t, struct ibv_send_wr *>  post_sr_map;
     std::map<uint8_t, std::vector<IbvSrList *> >::iterator it;
     for (it = server_id_sr_list_map.begin(); it != server_id_sr_list_map.end(); it ++) {
@@ -730,17 +730,17 @@ int UDPNetworkManager::rdma_post_sr_list_batch_async(std::vector<IbvSrList *> & 
         struct ibv_send_wr * sr_list_head = ib_merge_sr_lists(it->second, &last_wr_id);
 
         post_sr_map[it->second[0]->server_id] = sr_list_head;
-        // print_log(DEBUG, "\t\t[%s]  server: %d wait_wrid: %ld", __FUNCTION__, it->second[0]->server_id, last_wr_id);
+        print_log(DEBUG, "\t\t[%s]  server: %d wait_wrid: %ld", __FUNCTION__, it->second[0]->server_id, last_wr_id);
         wait_wrid_wc_map[last_wr_id] = NULL;
     }
 
-    // print_log(DEBUG, "\t\t[%s] 2. post sends", __FUNCTION__);
+    print_log(DEBUG, "\t\t[%s] 2. post sends", __FUNCTION__);
     std::map<uint8_t, struct ibv_send_wr *>::iterator sr_it;
     int ret = 0;
     for (sr_it = post_sr_map.begin(); sr_it != post_sr_map.end(); sr_it ++) {
         struct ibv_qp * send_qp = rc_qp_list_[sr_it->first]; 
         struct ibv_send_wr * bad_wr;
-        // print_log(DEBUG, "\t\t[%s]  post send to server(%d) qp(%x)", __FUNCTION__, sr_it->first, send_qp->qp_num);
+        print_log(DEBUG, "\t\t[%s]  post send to server(%d) qp(%x)", __FUNCTION__, sr_it->first, send_qp->qp_num);
 
         // debug
         // for (bad_wr = sr_it->second; bad_wr != NULL; bad_wr = bad_wr->next) {
@@ -772,7 +772,7 @@ int UDPNetworkManager::nm_poll_completion_sync(std::map<uint64_t, struct ibv_wc 
             tbb::concurrent_hash_map<uint64_t, struct ibv_wc *>::const_accessor acc;
             if (wrid_wc_map_.find(acc, wrid)) {
                 wait_wrid_wc_map[wrid] = acc->second;
-                // print_log(DEBUG, "\t\t[%s fb%lx] erase %ld", __FUNCTION__, boost::this_fiber::get_id(), acc->first);
+                print_log(DEBUG, "\t\t[%s fb%lx] erase %ld", __FUNCTION__, boost::this_fiber::get_id(), acc->first);
                 wrid_wc_map_.erase(acc);
             }
             // wrid_wc_map_.erase(find_it);
@@ -794,7 +794,7 @@ int UDPNetworkManager::nm_check_completion(std::map<uint64_t, struct ibv_wc *> &
         tbb::concurrent_hash_map<uint64_t, struct ibv_wc *>::const_accessor acc;
         if (wrid_wc_map_.find(acc, wrid)) {
             wait_wrid_wc_map[wrid] = acc->second;
-            // print_log(DEBUG, "\t\t[%s fb%lx] erase %ld", __FUNCTION__, boost::this_fiber::get_id(), acc->first);
+            print_log(DEBUG, "\t\t[%s fb%lx] erase %ld", __FUNCTION__, boost::this_fiber::get_id(), acc->first);
             wrid_wc_map_.erase(acc);
         }
     }
@@ -820,8 +820,8 @@ void UDPNetworkManager::nm_thread_polling() {
                     (wr_id / 1000) >> 8, (wr_id / 1000) & 0xFF, wr_id % 1000);
             }
             assert(wc_buf[i].status == IBV_WC_SUCCESS);
-            // print_log(DEBUG, "\t\t[%s] %ld(fiber: %d dst: %d lwrid: %d) polled status(%d)", __FUNCTION__, wr_id, 
-            //     (wr_id / 1000) >> 8, (wr_id / 1000) & 0xFF, wr_id % 1000, wc_buf[i].status);
+            print_log(DEBUG, "\t\t[%s] %ld(fiber: %d dst: %d lwrid: %d) polled status(%d)", __FUNCTION__, wr_id, 
+                (wr_id / 1000) >> 8, (wr_id / 1000) & 0xFF, wr_id % 1000, wc_buf[i].status);
             struct ibv_wc * store_wc = (struct ibv_wc *)malloc(sizeof(struct ibv_wc));
             memcpy(store_wc, &wc_buf[i], sizeof(struct ibv_wc));
             
@@ -837,7 +837,7 @@ void UDPNetworkManager::nm_thread_polling() {
 }
 
 void UDPNetworkManager::nm_fiber_polling() {
-    // print_log(DEBUG, "\t\t[%s fb%lx] start", __FUNCTION__, boost::this_fiber::get_id());
+    print_log(DEBUG, "\t\t[%s fb%lx] start", __FUNCTION__, boost::this_fiber::get_id());
     int ret = 0;
     int poll_num = 5;
     int polled_num = 0;
@@ -849,8 +849,8 @@ void UDPNetworkManager::nm_fiber_polling() {
         // record polled wc to a map
         for (int i = 0; i < polled_num; i ++) {
             uint64_t wr_id = wc_buf[i].wr_id;
-            // print_log(DEBUG, "\t\t[%s] %ld(fiber: %d dst: %d lwrid: %d) polled status(%d)", __FUNCTION__, wr_id, 
-            //     (wr_id / 1000) >> 8, (wr_id / 1000) & 0xFF, wr_id % 1000, wc_buf[i].status);
+            print_log(DEBUG, "\t\t[%s] %ld(fiber: %d dst: %d lwrid: %d) polled status(%d)", __FUNCTION__, wr_id, 
+                (wr_id / 1000) >> 8, (wr_id / 1000) & 0xFF, wr_id % 1000, wc_buf[i].status);
             struct ibv_wc * store_wc = (struct ibv_wc *)malloc(sizeof(struct ibv_wc));
             memcpy(store_wc, &wc_buf[i], sizeof(struct ibv_wc));
             // wrid_wc_map_lock_.lock();

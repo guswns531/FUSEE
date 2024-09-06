@@ -38,7 +38,7 @@ ServerMM::ServerMM(uint64_t server_base_addr, uint64_t base_len,
     int access_flag = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | 
         IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_ATOMIC;
     this->mr_ = ibv_reg_mr(ib_info->ib_pd, this->data_, this->base_len_, access_flag);
-    // print_log(DEBUG, "addr %lx rkey %x", mr_->addr, mr_->rkey);
+    print_log(DEBUG, "addr %lx rkey %x", mr_->addr, mr_->rkey);
 
     num_memory_ = conf->memory_num;
     num_replication_ = conf->num_replication;

@@ -51,6 +51,7 @@ if [ ! -d "./ofed" ]; then
 fi
 cd ofed
 sudo ./mlnxofedinstall --force
+
 if [ $mode == "scalestore" ]; then
   sudo /etc/init.d/openibd restart
 fi
