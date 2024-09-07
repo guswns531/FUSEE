@@ -13,6 +13,8 @@ The following nodes are used for testing:
 
 ## Initial Setup (Single Node)
 
+Assume that the directory /home/hjang/storage/FUSEE is shared across all nodes.
+
 1. Navigate to the setup directory and run the environment preparation script:
    ```bash
    cd setup
@@ -75,7 +77,7 @@ https://docs.nvidia.com/networking/display/mlnxofedv495100/introduction
    cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
    ```
 
-## Compile FUSEE on Single Node - inv06)
+## Compile FUSEE on Single Node (inv06)
 
 1. Compile FUSEE:
    ```bash
@@ -94,6 +96,9 @@ https://docs.nvidia.com/networking/display/mlnxofedv495100/introduction
    ```
 
 ## Running the Server for Memory Mode (inv06, inv07)
+
+**Since the server_config.json and client_config.json files should not be shared across nodes, we will copy the necessary files to /data/hjang, a local directory on each server.**
+
 
 1. Configure and run the server on **inv06**:
    ```bash
